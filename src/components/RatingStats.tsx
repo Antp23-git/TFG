@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
+import { Star } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface RatingStatsProps {
   filter?: "all" | "year" | "month";
@@ -9,6 +10,8 @@ export function RatingStats({ filter = "all" }: RatingStatsProps) {
   const { logs } = useGameStore();
 
   const now = new Date();
+  
+  // Filtrado de logs según el periodo seleccionado
   const filteredLogs = logs.filter((log) => {
     if (filter === "all") return true;
     if (!log.date) return false;
@@ -18,36 +21,67 @@ export function RatingStats({ filter = "all" }: RatingStatsProps) {
     return true;
   });
 
-  const counts = [0, 0, 0, 0, 0];
-  filteredLogs.forEach((l) => {
-    if (l.rating >= 1 && l.rating <= 5) counts[l.rating - 1]++;
-  });
-  const max = Math.max(...counts, 1);
+  // Cálculo de la nota media
+  const total = filteredLogs.length;
+  const average = total > 0 
+    ? (filteredLogs.reduce((acc, log) => acc + log.rating, 0) / total).toFixed(1)
+    : "0.0";
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm text-muted-foreground">Distribución de notas</span>
-        <span className="font-mono-data text-xs text-muted-foreground">
-          {filteredLogs.length} juego{filteredLogs.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-      <div className="flex items-end gap-2 h-32">
-        {counts.map((count, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <div className="relative w-full bg-muted rounded-t-sm overflow-hidden h-24">
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${(count / max) * 100}%` }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute bottom-0 w-full bg-secondary hover:bg-primary transition-colors rounded-t-sm"
-              />
-            </div>
-            <span className="font-mono-data text-[10px] text-muted-foreground">{i + 1}★</span>
-            <span className="font-mono-data text-[10px] text-muted-foreground">{count}</span>
+    <div className="bg-muted/20 border border-border/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 transition-all hover:bg-muted/30">
+      <div className="relative flex items-center justify-center">
+        {/* Círculo de progreso decorativo de fondo */}
+        <svg className="w-32 h-32 transform -rotate-90">
+          <circle
+            cx="64"
+            cy="64"
+            r="58"
+            stroke="currentColor"
+            strokeWidth="4"
+            fill="transparent"
+            className="text-muted/30"
+          />
+          {/* Círculo animado que representa la nota (escala 0-5) */}
+          <motion.circle
+            cx="64"
+            cy="64"
+            r="58"
+            stroke="currentColor"
+            strokeWidth="4"
+            fill="transparent"
+            strokeDasharray="364"
+            initial={{ strokeDashoffset: 364 }}
+            animate={{ strokeDashoffset: 364 - (364 * (parseFloat(average) / 5)) }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="text-primary"
+          />
+        </svg>
+
+        {/* Texto central con la nota */}
+        <div className="absolute flex flex-col items-center">
+          <span className="text-4xl font-mono-data font-black text-foreground tracking-tighter">
+            {average}
+          </span>
+          <div className="flex gap-0.5 mt-[-4px]">
+            <Star className="w-3 h-3 fill-primary text-primary" />
           </div>
-        ))}
+        </div>
       </div>
+
+      <div className="text-center space-y-1">
+        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          Nota Media {filter === "all" ? "Global" : filter === "year" ? "del Año" : "del Mes"}
+        </h4>
+        <p className="text-[11px] text-muted-foreground/60 italic font-mono-data">
+          {total} {total === 1 ? "Entrada" : "Entradas"} en el diario
+        </p>
+      </div>
+
+      {total === 0 && (
+        <p className="text-[9px] text-primary/60 font-medium uppercase tracking-tight">
+          Sin datos para este periodo
+        </p>
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ const Index = () => {
   const [search, setSearch] = useState("");
   const [genreFilter, setGenreFilter] = useState<string>("all");
 
+  // Obtenemos los géneros únicos de la lista de juegos
   const genres = ["all", ...Array.from(new Set(games.map((g) => g.genre)))];
 
   const filtered = games.filter((g) => {
@@ -20,51 +21,72 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container py-8 space-y-6">
-        <div>
-          <h1 className="font-display text-3xl text-foreground">
-            Track every world you've lived in.
+      <main className="container py-8 space-y-8">
+        
+        {/* Cabecera de la página: Eslogan y Descripción */}
+        <div className="space-y-2">
+          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
+            Tu vida, juego a juego.
           </h1>
-          <p className="text-muted-foreground text-sm mt-1 text-balance">
+          <p className="text-muted-foreground text-base md:text-lg max-w-[600px] text-balance">
             Puntúa, registra y archiva cada juego. Tu diario gaming personal.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* Sección de Búsqueda y Filtros Corregida */}
+        <div className="space-y-6 pt-2">
+          {/* Barra de búsqueda - Ahora con más presencia */}
+          <div className="relative w-full max-w-2xl">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
-              placeholder="Buscar juegos..."
+              placeholder="Buscar por título..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-muted border-border"
+              className="pl-10 h-12 bg-muted/40 border-border focus:bg-muted focus:ring-1 focus:ring-primary transition-all text-base rounded-xl"
             />
           </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {genres.map((genre) => (
-              <button
-                key={genre}
-                onClick={() => setGenreFilter(genre)}
-                className={`px-3 py-1.5 rounded-md text-xs transition-colors ${
-                  genreFilter === genre
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {genre === "all" ? "Todos" : genre}
-              </button>
-            ))}
+
+          {/* Filtros de Géneros - Estilo "Píldora" con mejor espaciado */}
+          <div className="flex flex-col gap-3">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] ml-1">
+              Filtrar por género
+            </span>
+            <div className="flex gap-2 flex-wrap items-center">
+              {genres.map((genre) => (
+                <button
+                  key={genre}
+                  onClick={() => setGenreFilter(genre)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                    genreFilter === genre
+                      ? "bg-primary border-primary text-primary-foreground shadow-md scale-105"
+                      : "bg-transparent border-border text-muted-foreground hover:border-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  {genre === "all" ? "Todos" : genre}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {/* Rejilla de Juegos */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 pt-4">
           {filtered.map((game) => (
             <GameCard key={game.id} game={game} />
           ))}
         </div>
 
+        {/* Mensaje de no resultados */}
         {filtered.length === 0 && (
-          <p className="text-center text-muted-foreground py-12">No se encontraron juegos.</p>
+          <div className="text-center py-24 bg-muted/20 rounded-2xl border border-dashed border-border">
+            <p className="text-muted-foreground text-lg">No se han encontrado juegos con esos criterios.</p>
+            <button 
+              onClick={() => {setSearch(""); setGenreFilter("all");}}
+              className="text-primary font-medium hover:underline mt-3 block w-full"
+            >
+              Restablecer búsqueda
+            </button>
+          </div>
         )}
       </main>
     </div>

@@ -1,116 +1,171 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { supabase } from "@/lib/supabase";
 
 export interface GameLog {
   gameId: string;
   rating: number;
   review?: string;
   hoursPlayed?: string;
-  date?: string; // ISO date string - only set when using "+" log
+  date?: string;
 }
 
 export interface UserProfile {
   username: string;
   avatarUrl: string;
-  favoriteGameIds: string[]; // max 4
+  favoriteGameIds: string[];
 }
+
+const initialProfile: UserProfile = {
+  username: "Player",
+  avatarUrl: "",
+  favoriteGameIds: [],
+};
 
 interface GameStore {
   logs: GameLog[];
-  watchlist: string[]; // "play later" game IDs
+  watchlist: string[];
   profile: UserProfile;
-  friends: string[]; // friend usernames
-
-  rateGame: (gameId: string, rating: number) => void;
-  logGame: (log: GameLog) => void;
-  removeLog: (gameId: string) => void;
-  toggleWatchlist: (gameId: string) => void;
-  setFavorite: (slot: number, gameId: string) => void;
-  removeFavorite: (gameId: string) => void;
-  updateProfile: (partial: Partial<UserProfile>) => void;
+  isLoading: boolean;
+  fetchUserContent: () => Promise<void>;
+  logGame: (log: GameLog) => Promise<void>;
+  removeLog: (gameId: string) => Promise<void>;
+  toggleWatchlist: (gameId: string) => Promise<void>;
   getGameLog: (gameId: string) => GameLog | undefined;
+  updateProfile: (partial: Partial<UserProfile>) => Promise<void>;
+  resetStore: () => void;
 }
 
-export const useGameStore = create<GameStore>()(
-  persist(
-    (set, get) => ({
-      logs: [],
-      watchlist: [],
-      profile: {
-        username: "Player",
-        avatarUrl: "",
-        favoriteGameIds: [],
-      },
-      friends: [],
+export const useGameStore = create<GameStore>((set, get) => ({
+  logs: [],
+  watchlist: [],
+  profile: initialProfile,
+  isLoading: false,
 
-      rateGame: (gameId, rating) => {
-        const existing = get().logs.find((l) => l.gameId === gameId);
-        if (existing) {
-          set({
-            logs: get().logs.map((l) =>
-              l.gameId === gameId ? { ...l, rating } : l
-            ),
-          });
-        } else {
-          set({ logs: [...get().logs, { gameId, rating }] });
-        }
-      },
+  // 1. CARGA INICIAL DE TODO EL CONTENIDO (F5 / Login)
+  fetchUserContent: async () => {
+    set({ isLoading: true });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-      logGame: (log) => {
-        const existing = get().logs.find((l) => l.gameId === log.gameId);
-        if (existing) {
-          set({
-            logs: get().logs.map((l) =>
-              l.gameId === log.gameId ? { ...l, ...log } : l
-            ),
-          });
-        } else {
-          set({ logs: [...get().logs, log] });
-        }
-      },
+      const userId = session.user.id;
 
-      removeLog: (gameId) => {
-        set({ logs: get().logs.filter((l) => l.gameId !== gameId) });
-      },
+      // Lanzamos las peticiones en paralelo para ir más rápido
+      const [logsRes, watchRes, profRes] = await Promise.all([
+        supabase.from('criticas').select('*').eq('user_id', userId),
+        supabase.from('watchlist').select('game_id').eq('user_id', userId),
+        supabase.from('perfiles').select('*').eq('id', userId).single()
+      ]);
 
-      toggleWatchlist: (gameId) => {
-        const wl = get().watchlist;
-        if (wl.includes(gameId)) {
-          set({ watchlist: wl.filter((id) => id !== gameId) });
-        } else {
-          set({ watchlist: [...wl, gameId] });
-        }
-      },
+      set({
+        logs: logsRes.data?.map(r => ({
+          gameId: r.game_id,
+          rating: r.rating,
+          review: r.review || "",
+          hoursPlayed: r.hours_played || "",
+          date: r.created_at
+        })) || [],
+        watchlist: watchRes.data?.map(w => w.game_id) || [],
+        profile: profRes.data ? {
+          username: profRes.data.username,
+          avatarUrl: profRes.data.avatar_url || "",
+          favoriteGameIds: profRes.data.favorites || []
+        } : { ...initialProfile, username: session.user.email?.split('@')[0] || "Player" }
+      });
+    } catch (error) {
+      console.error("Error cargando contenido:", error);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 
-      setFavorite: (slot, gameId) => {
-        const favs = [...get().profile.favoriteGameIds];
-        while (favs.length < 4) favs.push("");
-        // Remove if already in another slot
-        const existingIdx = favs.indexOf(gameId);
-        if (existingIdx !== -1) favs[existingIdx] = "";
-        favs[slot] = gameId;
-        set({ profile: { ...get().profile, favoriteGameIds: favs } });
-      },
+  // 2. GUARDAR / EDITAR RESEÑA
+  logGame: async (log) => {
+    const { logs } = get();
+    const existing = logs.find((l) => l.gameId === log.gameId);
+    
+    // Actualización local inmediata
+    set({
+      logs: existing 
+        ? logs.map((l) => l.gameId === log.gameId ? { ...l, ...log } : l)
+        : [...logs, log]
+    });
 
-      removeFavorite: (gameId) => {
-        set({
-          profile: {
-            ...get().profile,
-            favoriteGameIds: get().profile.favoriteGameIds.map((id) =>
-              id === gameId ? "" : id
-            ),
-          },
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('criticas').upsert({
+        user_id: session.user.id,
+        game_id: log.gameId,
+        rating: log.rating,
+        review: log.review || null,
+        hours_played: log.hoursPlayed || null
+      }, { onConflict: 'user_id,game_id' });
+    }
+  },
+
+  // 3. ELIMINAR RESEÑA
+  removeLog: async (gameId) => {
+    set({ logs: get().logs.filter((l) => l.gameId !== gameId) });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('criticas').delete().match({ 
+        user_id: session.user.id, 
+        game_id: gameId 
+      });
+    }
+  },
+
+  // 4. GESTIÓN DE PENDIENTES (WATCHLIST)
+  toggleWatchlist: async (gameId) => {
+    const { watchlist } = get();
+    const isAdded = watchlist.includes(gameId);
+    
+    // UI instantánea
+    set({
+      watchlist: isAdded 
+        ? watchlist.filter(id => id !== gameId) 
+        : [...watchlist, gameId]
+    });
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      if (isAdded) {
+        await supabase.from('watchlist').delete().match({ 
+          user_id: session.user.id, 
+          game_id: gameId 
         });
-      },
+      } else {
+        await supabase.from('watchlist').insert({ 
+          user_id: session.user.id, 
+          game_id: gameId 
+        });
+      }
+    }
+  },
 
-      updateProfile: (partial) => {
-        set({ profile: { ...get().profile, ...partial } });
-      },
+  // 5. ACTUALIZAR PERFIL (Nombre, Avatar, Favoritos)
+  updateProfile: async (partial) => {
+    const newProfile = { ...get().profile, ...partial };
+    set({ profile: newProfile });
 
-      getGameLog: (gameId) => {
-        return get().logs.find((l) => l.gameId === gameId);
-      },
-    }),
-    { name: "gameboxd-storage" }
-  )
-);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('perfiles').upsert({
+        id: session.user.id,
+        username: newProfile.username,
+        avatar_url: newProfile.avatarUrl,
+        favorites: newProfile.favoriteGameIds,
+        updated_at: new Date().toISOString()
+      });
+    }
+  },
+
+  getGameLog: (gameId) => get().logs.find((l) => l.gameId === gameId),
+
+  resetStore: () => set({ 
+    logs: [], 
+    watchlist: [], 
+    profile: initialProfile, 
+    isLoading: false 
+  }),
+}));
