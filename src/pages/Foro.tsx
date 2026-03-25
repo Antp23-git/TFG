@@ -130,7 +130,7 @@ export default function Foro() {
         
         <header className="mb-12">
           <h1 className="font-display text-6xl font-black italic uppercase tracking-tighter mb-2 flex items-center gap-4 text-foreground">
-            <MessageSquare className="w-12 h-12 text-primary" /> FEED
+            <MessageSquare className="w-12 h-12 text-primary" /> FORO
           </h1>
           <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-[0.3em] ml-2">Actividad de la comunidad</p>
         </header>
