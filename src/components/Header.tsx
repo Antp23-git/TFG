@@ -111,29 +111,32 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
-      <div className="container flex items-center justify-between h-16 gap-6">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+      {/* Usamos w-full y padding lateral reducido en vez de la clase 'container' estricta */}
+      <div className="w-full flex items-center justify-between h-16 px-3 sm:px-6">
+        
         <Link 
           to="/" 
-          className="font-display text-2xl font-bold tracking-tighter text-foreground shrink-0 uppercase italic hover:opacity-80 transition-opacity"
+          className="font-display text-xl sm:text-2xl font-bold tracking-tighter text-foreground shrink-0 uppercase italic hover:opacity-80 transition-opacity"
         >
           GAME<span className="text-primary">BOXD</span>
         </Link>
 
-        <div className="flex items-center gap-4">
-          <nav className="flex items-center gap-1">
+        {/* Contenedor derecho: reducimos gaps para que no empuje el botón fuera */}
+        <div className="flex items-center gap-1 sm:gap-4 shrink-0">
+          <nav className="flex items-center gap-0.5 sm:gap-1">
             {navItems.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  "flex items-center gap-1.5 sm:gap-2 px-2 py-2 rounded-lg text-sm font-medium transition-all shrink-0",
                   location.pathname === to
                     ? "bg-primary/10 text-primary font-bold shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                <Icon className={cn("w-4 h-4", location.pathname === to && "text-primary")} />
+                <Icon className={cn("w-[18px] h-[18px] sm:w-4 sm:h-4", location.pathname === to && "text-primary")} />
                 <span className="hidden lg:inline">{label}</span>
               </Link>
             ))}
@@ -141,20 +144,21 @@ export function Header() {
 
           <div className="h-6 w-[1px] bg-border mx-1 hidden sm:block" />
 
-          <div className="flex items-center min-w-[100px] justify-end">
+          {/* Eliminamos el min-w-[100px] que forzaba el scroll horizontal */}
+          <div className="flex items-center justify-end shrink-0">
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-primary/40" />
             ) : !session ? (
               <Button 
                 variant="default" 
                 size="sm" 
-                className="font-bold rounded-full px-6 shadow-lg shadow-primary/20" 
+                className="font-bold rounded-full px-4 sm:px-6 shadow-lg shadow-primary/20 text-xs sm:text-sm shrink-0" 
                 onClick={() => navigate("/auth")}
               >
                 Entrar
               </Button>
             ) : (
-              <div className="flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center gap-2 sm:gap-3 animate-in fade-in zoom-in-95 duration-200">
                 <div className="hidden md:flex flex-col items-end leading-none">
                   <span className="text-xs font-bold text-foreground">
                     {profile.username || "Usuario"}
@@ -166,10 +170,10 @@ export function Header() {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="text-muted-foreground hover:text-destructive rounded-full hover:bg-destructive/10 h-9 w-9 p-0" 
+                  className="text-muted-foreground hover:text-destructive rounded-full hover:bg-destructive/10 h-8 w-8 sm:h-9 sm:w-9 p-0 shrink-0" 
                   onClick={handleLogout}
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4 sm:w-4 sm:h-4" />
                 </Button>
               </div>
             )}

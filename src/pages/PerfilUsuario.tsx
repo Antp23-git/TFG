@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Header } from "@/components/Header";
 import { games } from "@/data/games";
-import { User as UserIcon, ArrowLeft, Star, Gamepad2, Calendar, MessageSquare } from "lucide-react";
+import { User as UserIcon, ArrowLeft, Star, Gamepad2, Calendar, MessageSquare, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,13 +15,19 @@ export default function PerfilUsuario() {
   const [actividad, setActividad] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
 
+  // Calculamos la media de notas de forma eficiente
+  const mediaNotas = useMemo(() => {
+    if (actividad.length === 0) return 0;
+    const suma = actividad.reduce((acc, curr) => acc + (curr.rating || 0), 0);
+    return (suma / actividad.length).toFixed(1);
+  }, [actividad]);
+
   useEffect(() => {
     const cargarDatosPerfil = async () => {
       if (!userId) return;
       setCargando(true);
 
       try {
-        // 1. Obtener datos del perfil
         const { data: userData } = await supabase
           .from("perfiles")
           .select("*")
@@ -30,7 +36,6 @@ export default function PerfilUsuario() {
         
         setPerfil(userData);
 
-        // 2. Obtener sus críticas
         const { data: criticas } = await supabase
           .from("criticas")
           .select("*")
@@ -49,7 +54,11 @@ export default function PerfilUsuario() {
   }, [userId]);
 
   if (cargando) {
-    return <div className="min-h-screen bg-background flex items-center justify-center font-black italic uppercase text-primary animate-pulse">Cargando Archivos...</div>;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center font-black italic uppercase text-primary animate-pulse">
+        Cargando Archivos...
+      </div>
+    );
   }
 
   return (
@@ -57,7 +66,6 @@ export default function PerfilUsuario() {
       <Header />
       
       <main className="container max-w-4xl py-10 px-6">
-        {/* BOTÓN VOLVER */}
         <Button 
           variant="ghost" 
           onClick={() => navigate(-1)} 
@@ -82,20 +90,28 @@ export default function PerfilUsuario() {
                 {perfil?.username || "Gamer"}
               </h1>
               <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
-                <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Reseñas</p>
-                  <p className="text-xl font-black text-primary">{actividad.length}</p>
+                {/* Bloque: Total Reseñas */}
+                <div className="bg-white/5 px-6 py-2 rounded-xl border border-white/5">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">Reseñas</p>
+                  <p className="text-xl font-black text-white text-center">{actividad.length}</p>
                 </div>
-                <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Estado</p>
-                  <p className="text-xl font-black text-green-500 uppercase italic text-sm mt-1">Online</p>
+
+                {/* Bloque: Media de Notas */}
+                <div className="bg-primary/10 px-6 py-2 rounded-xl border border-primary/20">
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest text-center">Nota Media</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <Star className="w-4 h-4 fill-primary text-primary" />
+                    <p className="text-xl font-black text-primary text-center">
+                      {actividad.length > 0 ? mediaNotas : "—"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* LISTA DE ACTIVIDAD (Reseñas) */}
+        {/* LISTA DE ACTIVIDAD */}
         <h2 className="text-2xl font-black uppercase italic mb-8 flex items-center gap-3">
           <MessageSquare className="text-primary w-6 h-6" /> Historial de Críticas
         </h2>
@@ -111,7 +127,6 @@ export default function PerfilUsuario() {
               return (
                 <div key={item.id} className="bg-[#0c0c0c] border border-white/5 p-8 rounded-[2.5rem] hover:border-primary/30 transition-all">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    
                     <div className="flex items-center gap-4">
                       <img 
                         src={juego?.cover} 

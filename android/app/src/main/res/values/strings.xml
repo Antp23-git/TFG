@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GameBoxd</string>
+    <string name="title_activity_main">GameBoxd</string>
+    <string name="package_name">com.gameboxd.app</string>
+    <string name="custom_url_scheme">com.gameboxd.app</string>
+</resources>

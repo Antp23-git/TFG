@@ -47,7 +47,7 @@ export function GameCard({ game }: GameCardProps) {
   return (
     <>
       <motion.div
-        className="relative group cursor-pointer"
+        className="relative group cursor-pointer flex flex-col gap-2" // Añadido flex-col y gap
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onClick={() => checkAuth(() => setLogOpen(true))}
@@ -55,7 +55,7 @@ export function GameCard({ game }: GameCardProps) {
         layout
       >
         {/* Contenedor de la Imagen */}
-        <div className="aspect-[2/3] rounded-lg overflow-hidden shadow-card bg-card border border-border/50 group-hover:border-primary/50 transition-all duration-300">
+        <div className="relative aspect-[2/3] rounded-lg overflow-hidden shadow-card bg-card border border-border/50 group-hover:border-primary/50 transition-all duration-300">
           <img
             src={game.cover}
             alt={game.title}
@@ -65,51 +65,56 @@ export function GameCard({ game }: GameCardProps) {
             )}
             loading="lazy"
           />
+
+          {/* Icono de Reseñado (Solo aparece si ya tiene log) */}
+          {log && !hovered && (
+            <div className="absolute bottom-2 right-2 bg-primary px-1.5 py-0.5 rounded text-[10px] text-white font-bold">
+              ★ {log.rating}
+            </div>
+          )}
+
+          {/* Overlay de información (Visible en Hover) */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: hovered ? 1 : 0 }}
+            className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-black/40"
+          >
+            <MessageSquare className="w-6 h-6 text-primary mx-auto mb-2 opacity-80" />
+            <p className="text-[10px] font-mono-data text-primary/90 font-bold uppercase tracking-widest">
+               INICIA SESIÓN
+            </p>
+          </motion.div>
         </div>
 
-        {/* Overlay de información (Solo visible en Hover) */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: hovered ? 1 : 0 }}
-          className="absolute inset-0 rounded-lg flex flex-col items-center justify-center p-4 text-center"
-        >
-          <div className="space-y-2">
-            <MessageSquare className="w-6 h-6 text-primary mx-auto mb-2 opacity-80" />
-            <p className="text-xs font-display font-bold text-white uppercase italic tracking-tighter leading-tight">
-              {game.title}
-            </p>
-            <p className="text-[10px] font-mono-data text-primary/90 font-bold uppercase tracking-widest">
-              {game.year}
-            </p>
-            
-            {/* Si ya tiene nota, mostramos un pequeño indicador visual de que está reseñado */}
-            {log && (
-              <div className="mt-2 bg-primary/20 border border-primary/30 px-2 py-0.5 rounded text-[9px] text-primary font-bold uppercase tracking-tighter">
-                {log.rating} ★ Reseñado
-              </div>
-            )}
-          </div>
+        {/* --- NOMBRE DEL JUEGO FUERA DE LA IMAGEN --- */}
+        <div className="px-1">
+          <h3 className="text-[11px] md:text-xs font-display font-bold text-foreground leading-tight line-clamp-2">
+            {game.title}
+          </h3>
+          <p className="text-[9px] font-mono-data text-muted-foreground uppercase tracking-wider mt-0.5">
+            {game.year}
+          </p>
+        </div>
 
-          {/* Botón de Watchlist (Pendientes) en la esquina */}
-          <div className="absolute top-3 right-3 pointer-events-auto">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                checkAuth(() => toggleWatchlist(game.id));
-              }}
-              className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-md border",
-                isInWatchlist
-                  ? "bg-primary border-primary text-white"
-                  : "bg-black/40 border-white/20 text-white hover:bg-black/60"
-              )}
-            >
-              <Clock className="w-4 h-4" />
-            </motion.button>
-          </div>
-        </motion.div>
+        {/* Botón de Watchlist siempre accesible */}
+        <div className="absolute top-2 right-2 z-10">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              checkAuth(() => toggleWatchlist(game.id));
+            }}
+            className={cn(
+              "w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-lg backdrop-blur-md border",
+              isInWatchlist
+                ? "bg-primary border-primary text-white"
+                : "bg-black/20 border-white/10 text-white opacity-0 group-hover:opacity-100"
+            )}
+          >
+            <Clock className="w-3.5 h-3.5" />
+          </motion.button>
+        </div>
       </motion.div>
 
       <LogModal game={game} open={logOpen} onOpenChange={setLogOpen} />
