@@ -229,8 +229,7 @@ export default function Foro() {
                 <div className="mt-8 text-[9px] font-bold text-muted-foreground/20 uppercase tracking-[0.4em] flex justify-between border-t border-white/5 pt-5">
                   <span>{new Date(item.created_at).toLocaleDateString()}</span>
                   <span className={item.type === 'review' ? "text-primary/50" : ""}>
-                    {item.type === 'post' ? '• PUBLIC FEED •' : '• CRITICAL REVIEW •'}
-                  </span>
+                    {item.type === 'review' ? '' : 'post'} </span>
                 </div>
               </div>
             );
